@@ -1,0 +1,13 @@
+{
+  "name": "Faith Tracker - Places of Worship in India",
+  "short_name": "Faith Tracker",
+  "description": "Discover 51,558+ places of worship across India. Find temples, mosques, churches, gurudwaras, and more.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1E40AF",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

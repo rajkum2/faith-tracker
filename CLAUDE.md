@@ -1,0 +1,610 @@
+# PropYaar Frontend
+
+## What is PropYaar?
+
+PropYaar is an **Indian real estate platform** with interactive maps, property listings, GIS drawing tools, and AI-powered property search. It serves home buyers, sellers, and investors with features like map visualization with layouts, 3D tours, fractional investment, and multi-language support.
+
+**Currency**: INR (Crores/Lakhs).
+
+> **Note**: This codebase also contains Meeru AI enterprise finance modules under the `(main)` route group. PropYaar is the primary product, served from the `(site)` route group.
+
+## Tech Stack
+
+Next.js 13 App Router, TypeScript, Tailwind CSS, Shadcn/UI, Lucide icons, Leaflet + React Leaflet + Leaflet Geoman (maps + drawing). Current page count: 105 (`find app -name page.tsx | wc -l`). No testing framework.
+
+## Commands
+
+```bash
+npm run dev          # Start dev server
+npm run build        # Production build (use to verify zero TS errors)
+npm run lint         # ESLint (ignored during builds)
+npm run typecheck    # tsc --noEmit
+npm run format       # Prettier write
+npm run format:check # Prettier check
+```
+
+Always run `npm run build` after significant changes to verify zero TypeScript errors.
+
+## Environment
+
+```bash
+NEXT_PUBLIC_DATA_SOURCE=json   # "json" (default) or "api" — switches data provider at runtime
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api  # Only needed when DATA_SOURCE=api
+API_BASE_URL=http://localhost:8000  # Used by Next.js server routes (SSE/query/sessions proxies)
+```
+
+## Path Aliases
+
+Prefer `@/` imports for cross-folder/shared modules. Relative imports are acceptable for local same-feature files.
+```ts
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { useIgrsCases } from "@/hooks/data"
+```
+
+---
+
+## The 7 Rails — Functional Overview
+
+### Rail 1: HOME (Personal Workspace & AI)
+Personal command center and collaboration hub.
+
+| Page | What It Does |
+|------|-------------|
+| **Command Center** | AI chat interface — query financial data in natural language, generate visualizations, execute bulk actions |
+| **My Workspace** | Customizable dashboard with live KPIs, recent items, quick actions |
+| **Live Pins** | Monitor critical metrics with auto-refresh, alert thresholds, sparkline trends |
+| **Watchlist** | Track high-value entities (customers, cases, invoices) with condition-based alerts |
+| **Autonomy Studio** | Visual workflow builder — create scheduled/event-triggered automations for finance processes |
+| **Narratives** | AI-generated business summaries explaining month-end performance |
+| **Process-to-Automation** | Identifies manual finance processes that can be automated |
+| **Dynamic Sheets** | Spreadsheet-like data editor with formula support |
+| **Data Template** | AG Grid-based template management for recurring data operations |
+
+### Rail 2: AUTOMATION (Data Movement & Execution)
+Manages scheduled data imports/exports, reconciliation engine runs, and workflow execution.
+
+| Page | What It Does |
+|------|-------------|
+| **Data Templates** | ETL job management — import bank statements, payment files, ERP GL exports; map fields, schedule runs |
+| **All Runs** | Execution history of all templates/workflows (status, duration, errors, retries) |
+| **Reconciliation** | Automated GL-to-subledger matching engine (target: >80% auto-match) |
+| **Worklist** | Task queue for manual work items that can't be automated, with SLA tracking |
+| **Workflow** | Advanced multi-step process designer for close orchestration, approval chains |
+| **TaskFlow** | Task dependency management and critical path tracking |
+| **Autonomy Studio** | Same as Home's — entry point for workflow automation |
+
+### Rail 3: REPORTS (Financial Analysis & Compliance)
+Read-only financial statements with drill-down and AI-powered variance analysis. All 6 pages use AG Grid + hooks.
+
+| Page | What It Does |
+|------|-------------|
+| **Balance Sheet** | Asset/liability/equity position — multi-period comparison, drill-down to GL, AI anomaly detection |
+| **Income Statement** | Period revenue & expense performance with trend analysis |
+| **Trial Balance** | Complete GL account listing with opening/closing balances, pre-close verification |
+| **Account Activity** | Transaction-level detail for any GL account (drill from BS → TB → here) |
+| **One-Click Variance** | AI auto-identifies >10% variances and generates narrative explanations |
+| **Flux Analysis** | Deep variance breakdown by driver: volume, price, mix, FX impact, one-time items. SVG charts |
+
+### Rail 4: WORKBENCH (Operational Execution)
+Action-oriented tools for deep operational work. Unlike Reports, Workbenches are fully editable.
+
+#### Order-to-Cash (O2C) — Cash Management & Collections
+**Core flow**: Bank files imported → AI matching engine suggests payment-to-invoice matches → analyst reviews by confidence score → post to GL.
+
+| Page | What It Does |
+|------|-------------|
+| **Cash Application** (14 pages) | Main workbench: payment matching, remittance extraction, exception handling, GL posting. AI confidence scores: >95% auto-approve, 70-95% review, <70% manual |
+| **Collections Workbench** | Unified collections management — 4-tab workbench (Accounts, Dunning, Promises, Correspondence) with sidebar+table+drawer pattern |
+| **Disputes** | Invoice dispute management — log reason/amount, coordinate resolution, track timelines |
+| **Merchant Dashboard** | Merchant payment operations overview |
+
+**Key metrics**: Auto-match rate (>85%), processing time (<2hr), unapplied cash aging, DSO (<45 days)
+
+#### Procure-to-Pay (P2P)
+| Page | What It Does |
+|------|-------------|
+| **SaaS Renewal** | Contract lifecycle management — renewals, volume discounts, usage vs. licensed seats. Uses Chart.js |
+| **AP Exceptions** | 3-way match exceptions (invoice vs PO vs receipt) — quantity/price mismatches, duplicates |
+
+#### Record-to-Report (R2R) — Period-End Close
+**Close phases**: Pre-Close (Day 1-10) → Core Close (Day 10-11) → Post-Close (Day 12-14) → Reporting (Day 15+)
+
+| Page | What It Does |
+|------|-------------|
+| **Close Workbench** | Orchestrates 30-100 month-end tasks — dependencies, critical path, SLA alerts, blocker escalation. Target: <5 days to close |
+| **Reconciliations** | GL-to-subledger reconciliation — auto-match, investigate unmatched, certify, attach evidence |
+
+**SOX stage workflow**: DRAFT → PREPARED → IN_REVIEW → APPROVED → POSTED_LOCKED (immutable)
+
+#### Other Workbench Modules
+| Page | What It Does |
+|------|-------------|
+| **MRP** (Supply Chain) | Material Requirements Planning — PO status tracking, supplier performance, delivery delays |
+| **BPO Setup** | Configure Business Process Outsourcing vendors — SLA targets, staff, accuracy, contract management |
+| **Variance Drivers** (FP&A) | Root cause analysis of budget variances — volume, price, mix, timing, FX, one-time items |
+| **Revenue Recognition** (Rev Ops) | ASC 606 compliance — performance obligations, deferred revenue, contract amendments |
+| **Liquidity** (Treasury) | Cash position monitoring — 13-week forecast, bank balances, debt covenant compliance |
+
+### Rail 5: IGRS (Indian Government Revenue Assurance)
+Dedicated module for stamp duty revenue assurance across Indian sub-registrar offices. All amounts in INR. **NOT part of Meeru AI enterprise scope.**
+
+#### 9 Leakage Signal Types
+1. **Revenue Gap** (`RevenueGap`) — Mismatch between expected stamp duty and actual payment
+2. **Challan Delay** (`ChallanDelay`) — Abnormal delay (>10 days) between presentation and registration
+3. **Exemption Abuse** (`ExemptionRisk`) — Suspicious or ineligible exemption claims
+4. **Market Value** (`MarketValueRisk`) — Declared value deviates from market rate card
+5. **Prohibited Land** (`ProhibitedLand`) — Transaction involves prohibited zones
+6. **Data Integrity** (`DataIntegrity`) — Missing/inconsistent registration data fields
+7. **Cash Recon** (`CashReconciliation`) — Cash collection GL vs treasury mismatch
+8. **Stamp Inventory** (`StampInventory`) — Physical stamp paper inventory discrepancy
+9. **Classification Fraud** (`ClassificationFraud`) — Wrong property classification (Webland/Form cross-verification) to reduce stamp duty
+
+| Page | What It Does |
+|------|-------------|
+| **Overview** | Executive dashboard — total payable/paid/gap, high-risk cases, daily cash risk score, top offices by gap |
+| **Cases** | Case management (New → In Review → Confirmed → Resolved/Rejected) with risk levels, confidence scores |
+| **Insights** | AI-powered pattern analysis — top drivers by jurisdiction, exemption abuse patterns |
+| **Patterns** | Statistical anomaly detection — spikes, drops, drifts, seasonal patterns |
+| **MV Trends** | Market value trend tracking by district/zone, hotspot identification |
+| **Governance** | Office config, jurisdiction settings, policy management |
+| **AI Chat** | Natural language queries about IGRS data |
+| **Admin** | IGRS-specific user management and audit trail |
+
+**Key metrics**: Detection accuracy (>90%), recovery rate (>70%), case SLA compliance (>95%)
+
+### Rail 6: ADMIN (Platform Administration)
+
+| Page | What It Does |
+|------|-------------|
+| **Users** | User provisioning, role assignment, team organization by department |
+| **Integrations** | ERP connectors (NetSuite, SAP, Oracle), bank connectors (BAI2/CSV/OFX), email integration |
+| **Audit Log** | Immutable compliance trail — who modified what, when, from where. Exportable for auditors |
+| **Settings** | Company config, fiscal calendar, currency/FX rates, chart of accounts, materiality thresholds |
+
+### Rail 7: PROPYAAR (Real Estate Platform)
+Indian real estate platform with interactive maps, property listings, and GIS drawing tools. Amounts in INR. **Separate product from Meeru AI enterprise scope.**
+
+| Page | What It Does |
+|------|-------------|
+| **Properties** | Main property listing with split-panel (list + map), type filters (Sale/Rent), search, overlay toggles (Popular/Upcoming/Red Zones/Highways) |
+| **Rentals** | Filtered rental-only view with same split-panel pattern |
+| **Projects** | GIS project layouts (Flats/Plots) with occupancy stats, projects map |
+| **Blog** | 3-column blog grid with tag badges, search, detail drawer |
+| **Submit Listing** | 5-step wizard: Property Details → Location → Photos → Additional Info → Review |
+| **Submit Project** | 4-step GIS drawing wizard: Feature Type → Draw on Map (Geoman) → Details → Review. Creates layouts (polygons) or lines |
+| **Manage Layouts** | Admin page for GIS layouts and lines — list + map, delete with confirmation, "Create New" links to Submit Project |
+| **Agents** | Agent directory with star ratings, listing counts, contact detail drawer |
+| **AI Chat** | Property assistant — natural language queries about listings, pricing, areas, agents. Simulated responses from live listing data |
+| **Profile** | User profile with edit form (name/email/phone/city/role), language switcher (4 locales), my listings, verification status |
+| **Contact** | Contact info cards + contact form |
+| **About** | Static page with stats, features, supported cities |
+
+**Supported Cities**: Hyderabad, Bengaluru, Chennai, Warangal, Karim Nagar, Mancherial
+
+**Map Stack**: Leaflet + React Leaflet (dynamic import, `ssr: false`), Leaflet Geoman (drawing)
+
+**i18n**: Lightweight `PropYaarI18nProvider` context (`lib/propyaar-i18n.tsx`) with `useTranslation()` hook. 4 locales: English, Hindi, Kannada, Telugu. Translation files in `public/data/propyaar/locales/{en,hi,kn,te}.json`. Dot-notation key resolver (`t("listing.price")`). Locale persisted in localStorage.
+
+---
+
+## User Roles (6 Roles)
+
+| Role | Can Do | Typical User |
+|------|--------|-------------|
+| **PREPARER** | Create tasks, fill forms, prepare docs | Analyst, Staff Accountant |
+| **REVIEWER** | Review work, approve/reject | Senior Analyst, Manager |
+| **APPROVER** | Final approval on critical items | Director, VP Finance |
+| **CONTROLLER** | Post to GL, lock periods | Accounting Controller |
+| **CFO** | View-only across all modules | CFO, Finance VP |
+| **ADMIN** | Full system access + configuration | System Administrator |
+
+---
+
+## Key Domain Terminology
+
+- **O2C / P2P / R2R**: Order-to-Cash / Procure-to-Pay / Record-to-Report (finance cycles)
+- **DTC**: Days to Close (target: <5 days)
+- **DSO**: Days Sales Outstanding (target: <45 days)
+- **GL**: General Ledger (master accounting system)
+- **AR / AP**: Accounts Receivable / Accounts Payable
+- **Remittance**: Payment detail from customer (which invoices are being paid)
+- **Auto-match**: High-confidence AI matches approved without human review
+- **Unapplied cash**: Payments received but not yet matched to invoices
+- **Close task**: Individual item on period-end checklist
+- **Critical path**: Longest dependent task chain determining close duration
+- **Leakage signal**: Indicator of potential revenue loss (IGRS: 8 signal types)
+- **SR Office**: Sub-Registrar office (IGRS government property registration)
+- **Challan delay**: Days between property presentation and registration
+
+---
+
+## Project Structure
+
+```
+app/
+  (site)/                              # PropYaar public site (SiteHeader + SiteFooter layout)
+    page.tsx                           # Home page (banner, CTA blocks, new listings)
+    properties/                        # Property listings + detail [id]
+    rentals/                           # Rental listings
+    projects/                          # GIS project layouts
+    blog/                              # Blog grid + detail [id]
+    about/contact/agents/              # Static pages
+    ai-chat/                           # Property assistant
+    profile/                           # User profile
+    submit-listing/submit-project/     # Submission wizards
+    manage-layouts/                    # GIS layout management
+    layout.tsx                         # PropYaarI18nProvider + SiteHeader + SiteFooter
+  (main)/                              # Meeru enterprise (AppShell + AuthProvider)
+    <rail>/<section>/<page>/page.tsx   # Enterprise page routes
+  api/                                 # Next.js API routes (mock endpoints)
+  layout.tsx                           # Root: AuthProvider → QueryClient → Sonner
+  providers.tsx                        # React Query (5-min stale, no refetch on focus) + Sonner toast
+  globals.css                          # Tailwind base + custom design tokens
+
+components/
+  layout/                              # Shell: app-shell, sidebar, navigation-panel, breadcrumb, header
+  ui/                                  # 48 Shadcn/UI components
+  chat/                                # AI chat interface
+  cash-app/                            # Cash application UI
+  workspace/                           # Workspace features
+  igrs/                                # IGRS module components
+  propyaar/                            # PropYaar real estate components (property-card, property-map, projects-map, manage-layouts-map)
+  shared/                              # Cross-module reusable components
+
+lib/
+  navigation.ts                        # NAVIGATION_STRUCTURE (7 rails, 50+ nav items)
+  utils.ts                             # cn() helper (clsx + tailwind-merge)
+  auth-context.tsx                     # Auth context (6 roles)
+  permissions.ts                       # Role-based access control
+  data/
+    data-service.ts                    # Central data service (10 modules, switchable provider)
+    providers/json-provider.ts         # JSON data provider (reads from public/data/)
+    providers/api-provider.ts          # API provider (skeleton)
+    types/                             # TypeScript types (12 modules)
+    utils/                             # Data transformation utilities
+    validations/                       # Zod schemas
+  cash-app-store.tsx                   # Cash app state management
+  dynamic-sheets-store.tsx             # Spreadsheet-like state
+
+hooks/data/                            # 42 custom data hooks (barrel export: hooks/data/index.ts)
+public/data/                           # JSON data files (mock data source)
+```
+
+## App Layout Chain
+
+```
+RootLayout → QueryClientProvider (5-min stale) + Sonner Toaster → AuthProvider
+  → (main)/layout.tsx → AppShell + PrivateRoute + ErrorBoundary (dynamic, no SSR) → Page
+```
+
+## Data Service Modules
+
+```
+dataService.igrsRevenue        — IGRS cases, rules, signals, dashboard
+dataService.revenueAssurance   — Enterprise revenue (IGRS-only scope)
+dataService.cashApplication    — payments, remittances, matching, exceptions, bank lines
+dataService.reports            — balanceSheet, incomeStatement, trialBalance, journalEntries, fluxAnalysis
+dataService.closeManagement    — getTasks, updateTask
+dataService.reconciliations    — getReconciliations
+dataService.workspace          — pins, watchlist, activityFeed, dataTemplates
+dataService.automation         — workflows
+dataService.ai                 — chat sessions
+dataService.common             — notifications, auditLog, users
+dataService.merchantPortal     — accounts, invoices, payments, disputes, credit memos, payment methods
+dataService.collections        — records, customer360, dunning sequences/templates, promises, correspondence
+dataService.propyaar           — listings, locations, categories, blog, agents, layouts, lines, lands, geoData
+```
+
+## Coding Conventions
+
+- All pages use `"use client"` directive
+- `cn()` from `@/lib/utils` for conditional class names
+- Use `Array.from()` instead of Set spreading (not supported in tsconfig)
+- Use `formatInr()` for INR currency (Cr for 10M+, L for 100K+, K for 1K+)
+- Use `$` + `toLocaleString()` for USD amounts
+- Badge variants: `"destructive"` for high/critical, `"secondary"` for medium, `"outline"` for low
+- Badge color pattern: `className="bg-{color}-50 text-{color}-700 border-{color}-200"`
+- Prefer inline SVG charts unless page already uses recharts/Chart.js
+- AG Grid for Reports rail and data-template pages
+- Prefer editing existing files over creating new ones
+
+## Page Pattern
+
+```
+"use client"
+imports → interface → MOCK_DATA → badge helpers → default export function
+  → useState (search, filters, selected record)
+  → useMemo (filtered data, KPI calculations)
+  → return:
+    <div className="flex flex-col bg-white" style={{ height: '100%', minHeight: 0 }}>
+      <header> sticky breadcrumb + icon + title + description + border </header>
+      <div className="flex-1 overflow-auto">
+        <div className="w-full max-w-[1363px] mx-auto px-6 py-6">
+          4x KPI cards (grid-cols-4, card-interactive class)
+          Filter bar (search Input + Select dropdowns)
+          Table with clickable rows → opens Sheet/Dialog drawer
+        </div>
+      </div>
+      <Sheet> detail drawer: summary grid + action buttons </Sheet>
+    </div>
+```
+
+## Tailwind Custom Tokens
+
+Defined in `globals.css` and `tailwind.config.ts`:
+- **Gradients**: `gradient-primary` (blue), `gradient-accent` (indigo), `gradient-success/warning/danger`
+- **Elevation shadows**: `elevation-1` through `elevation-4`
+- **Animations**: `card-lift`, `fade-in-up`, `slide-in-right`, `scale-in`, `glow-pulse`
+- **Colors**: HSL CSS variables for theming (light + dark mode via `.dark` class)
+
+## API Routes (Internal Mock)
+
+Key routes in `app/api/`:
+- `/api/close/tasks` — Close management tasks
+- `/api/mrp-workbench` — MRP workbench CRUD
+- `/api/data-templates` — Template management
+- `/api/sessions/[userId]` — Chat sessions
+- `/api/dynamic-sheets` — Spreadsheet CRUD
+- `/api/recons` — Reconciliation
+- `/api/sse` — Server-Sent Events (streaming)
+- `/api/commandQuery` — Query submission proxy
+- `/api/query/[queryId]/result` — Query result proxy/polling
+
+## Important Notes
+
+- Revenue Leakage is **IGRS-only**, NOT part of Meeru AI scope
+- Old `revenue-assurance/` route is a duplicate of IGRS (11 pages, hook-based)
+- Chart libraries vary: recharts, Chart.js, inline SVG — match the existing page's approach
+- No testing framework — verify with `npm run build` and manual navigation
+- Deployment: standalone output for Docker, Netlify-aware conditional config
+
+## Documentation Maintenance Policy (Mandatory)
+
+- `CLAUDE.md` must be updated whenever project behavior, structure, routes, APIs, conventions, tooling, environment variables, or architecture changes.
+- This applies to **all** code changes, including changes made by Codex.
+- Update this file in the same change set as the code change (same PR/commit batch), not later.
+- Do **not** rewrite the whole document for routine updates. Use append-only updates in the `## Update Log (Append-Only)` section.
+- Keep existing sections intact unless information is incorrect; in that case, correct the inaccurate line and add an append-only log entry explaining what changed.
+- Each append-only update entry must include:
+  - Date (`YYYY-MM-DD`)
+  - What changed
+  - Affected paths/routes/modules
+  - Any required env/script/command changes
+  - Backward-compatibility or migration notes (if any)
+
+## Update Log (Append-Only)
+
+### 2026-02-24
+- Corrected stale/inaccurate metadata:
+  - Page count updated to 91 with command reference.
+  - Added `API_BASE_URL` to environment variables for Next.js server proxy routes.
+  - Clarified import guidance (`@/` preferred; local relative imports allowed).
+  - Corrected root layout/provider order to match implementation.
+  - Updated API routes list to include `/api/commandQuery` and `/api/query/[queryId]/result`.
+- Added mandatory policy requiring `CLAUDE.md` updates for every project/code change, including Codex-driven edits, with append-only logging.
+
+### 2026-02-25
+- **Enterprise Design System Overhaul** — migrated from `#0A3B77` brand navy to `#1E40AF` blue (`--primary: 217 91% 40%`).
+  - **Phase 1 (Tokens)**: Updated `globals.css` HSL variables (`--primary`, `--ring`, `--border`, `--input`), gradient definitions, scrollbar colors, animation rgba values, tooltip styling. Added semantic color tokens (`--color-danger-*`, `--color-warning-*`, `--color-info-*`, `--color-success-*`). Updated `tailwind.config.ts` glow/border-glow keyframes.
+  - **Phase 2 (UI Components)**: Updated 11 Shadcn components — `button.tsx` (added `danger` variant, replaced hardcoded colors with `bg-primary`), `badge.tsx`, `card.tsx`, `table.tsx`, `input.tsx`, `select.tsx`, `dialog.tsx`, `sheet.tsx`, `dropdown-menu.tsx`, `checkbox.tsx` (h-[18px], border-slate-300), `textarea.tsx` (rounded-lg, focus ring).
+  - **Phase 3 (Layout Shell)**: Dark sidebar (`bg-slate-900`), white nav panel (`bg-white`, `w-60`), clean header (`bg-white border-slate-200`), `bg-slate-50` main content. Updated `sidebar.tsx`, `navigation-panel.tsx`, `header.tsx`, `main-content.tsx`, `breadcrumb.tsx`, `app-shell.tsx`.
+  - **Phase 4 (Toast + Polish)**: Toast restyled to white with colored left border per type. Updated `providers.tsx`, `live-pin-modal.tsx`, `aging-summary-cards.tsx`, `prompt-composer.tsx`.
+  - **Phase 5 (Page Fixes)**: Eliminated all ~98 `#0A3B77` references across ~30 files. Converted selected tab/chip states from `bg-slate-900` to `bg-primary`. Converted 3 dark table headers to light `bg-slate-50` style.
+  - **Button variant type** now includes `'danger'` in addition to existing variants.
+  - **Sidebar width** changed from `w-[72px]` to `w-16` (64px). Nav panel from `w-[280px]` to `w-60` (240px).
+  - No env/script/command changes. No breaking API changes. Build verified with zero TypeScript errors.
+
+### 2026-02-25 (b)
+- **ClassificationFraud — 9th IGRS Signal Type** added across 8 files:
+  - **Types** (`lib/data/types/igrs.ts`): Added `"ClassificationFraud"` to `IGRSLeakageSignal` union, `"Classification"` to `IGRSRuleCategory` union, `classificationFraudEvidence?` to `IGRSCase`, `ClassificationFraud` entry to `IGRS_SIGNAL_CONFIG`, and 4 new interfaces (`ClassificationCrossVerificationRow`, `ClassificationHistoryEntry`, `ClassificationDutyImpact`, `ClassificationFraudEvidenceExtended`).
+  - **Mock data**: 5 rules (`R-CF-001` to `R-CF-005`) in `rules.json`, 6 signals in `signals.json`, 4 cases (`IGRS-2024-0044` to `IGRS-2024-0047`) in `cases.json`, `ClassificationFraud` entry in `dashboard-kpis.json` `leakageBySignal`.
+  - **Overview page** (`overview/page.tsx`): Added to `SIGNAL_LABELS`, `SIGNAL_COLORS`, `thresholdStats`, new clickable "Classification Fraud" card (orange theme).
+  - **Admin rules tab** (`admin/_components/rules-tab.tsx`): Added `"Classification"` to `CATEGORY_OPTIONS` and category color map.
+  - **Cases page** (`cases/page.tsx`): Added to `SIGNAL_OPTIONS`, `SIGNAL_BADGES`, `SIGNAL_CHIP_STYLES`, `SIGNAL_LABELS`. New "Classification" drawer tab with 5 sections (Mismatch Summary, Form Cross-Verification table, Conversion History timeline, Duty Impact Analysis with rate comparison bars, Triggered Rules).
+  - IGRS leakage signal count updated from 8 to 9 in CLAUDE.md.
+  - No env/script/command changes. No breaking API changes. Build verified with zero TypeScript errors.
+
+### 2026-02-25 (c)
+- **IGRS Signal Labels — Full Names**: Replaced abbreviated signal labels with complete display names across all IGRS pages.
+  - Display name mapping: RevenueGap→"Revenue Gap", ChallanDelay→"Challan Delay", ExemptionRisk→"Exemption Abuse", MarketValueRisk→"Market Value", ProhibitedLand→"Prohibited Land", DataIntegrity→"Data Integrity", CashReconciliation→"Cash Recon", StampInventory→"Stamp Inventory", ClassificationFraud→"Classification Fraud".
+  - Updated `SIGNAL_LABELS` in `overview/page.tsx` and `cases/page.tsx`, `SIGNAL_OPTIONS` in `cases/page.tsx`, `IGRS_SIGNAL_CONFIG` labels in `lib/data/types/igrs.ts`, threshold card label in `overview/page.tsx`.
+  - Updated CLAUDE.md signal list to show both display names and code identifiers.
+  - No env/script/command changes. Build verified with zero TypeScript errors.
+
+### 2026-02-27
+- **Merchant Invoicing Data Foundation** — Phase 1 of Merchant Invoicing BRD. Created complete data layer for Merchant Portal and Collections modules.
+  - **New types** (`lib/data/types/merchant.ts`): 15 union types (`MerchantAccountStatus`, `MerchantPaymentStatus`, `MerchantInvoiceStatus`, `MerchantDisputeStatus`, `MerchantDisputeType`, `CollectionSeverity`, `CollectionStatus`, `DunningStep`, `DunningStatus`, `PromiseStatus`, `CorrespondenceType`, `CorrespondenceChannel`, `PaymentMethodType`, `ACHVerificationStatus`, `CreditMemoStatus`) and 19 interfaces for Merchant Portal + Collections.
+  - **New filter types** (`lib/data/types/filters.ts`): `MerchantInvoiceFilters`, `CollectionFilters`, `DunningFilters` extending `BaseFilters`.
+  - **Mock data** (13 JSON files): `public/data/merchant/` (accounts, invoices, payments, payment-methods, disputes, credit-memos, notifications) and `public/data/collections/` (records, customer360, dunning-sequences, dunning-templates, promises, correspondence).
+  - **Hooks** (4 new files in `hooks/data/`): `use-merchant-portal.ts` (10 hooks), `use-collections.ts` (3 hooks), `use-customer360.ts` (2 hooks), `use-dunning.ts` (7 hooks).
+  - **Data service wiring**: Added `merchantPortal` and `collections` modules to `json-provider.ts`, `api-provider.ts`, and `data-service.ts`.
+  - **Navigation**: Added 3 items under Order-to-Cash: Merchant Portal (`Store` icon), Merchant Dashboard (`BarChart3` icon), Collections (`PhoneCall` icon). Added `Store`, `PhoneCall` to lucide imports.
+  - **Barrel exports updated**: `lib/data/types/index.ts` and `hooks/data/index.ts`.
+  - Data service modules now include: `dataService.merchantPortal` and `dataService.collections`.
+  - No env/script/command changes. No breaking API changes. Build verified with zero TypeScript errors.
+
+### 2026-02-27 (b)
+- **Collections Portal Phase 2 — B1 + B7**: Built Collections Dashboard and enhanced Cash Collection Workbench.
+  - **B1: Collections Dashboard** (`app/(main)/workbench/order-to-cash/collections/page.tsx`, 791 lines): New AR manager command center with 5 KPI cards (Total AR, Past Due, Avg Days Past Due, Collection Rate, Promise Pipeline), inline SVG AR aging waterfall chart, collector workload heatmap matrix, top 10 past-due accounts table with dunning status, daily action queue summary (follow-ups due, promises expiring, dunning actions), team performance metrics. Uses `useCollections`, `usePromisesToPay`, `useDunningSequences`, `useCorrespondence` hooks.
+  - **B7: Cash Collection Enhancement** (`app/(main)/workbench/order-to-cash/cash-collection/page.tsx`, rewritten from 844→1013 lines): Replaced 120 synthetic records with `useCollections()` hook. Added 4 KPI stat cards in header. Added inline SVG aging mini-chart. Added "View Customer 360" button in drawer. Added Dunning status + Days columns in table. Added risk score progress bar in drawer. Wired refetch() on actions. Fixed all hardcoded colors (#205375→bg-primary, etc). Updated severity mapping to match CollectionRecord capitalized values. Added loading/error/empty states.
+  - **Routes**: `/workbench/order-to-cash/collections` (new), `/workbench/order-to-cash/cash-collection` (enhanced).
+  - Page count increased from 91 to 92.
+  - No env/script/command changes. No breaking API changes. Build verified with zero TypeScript errors.
+
+### 2026-02-27 (c)
+- **Collections Portal Phase 2 — B2 + B3**: Built Customer 360 View and Auto-Dunning Manager pages.
+  - **B2: Customer 360 View** (`app/(main)/workbench/order-to-cash/collections/customer/[customerId]/page.tsx`): Dynamic route showing comprehensive customer financial profile. 4 summary cards (Total Outstanding, Past Due, Credit Score with colored bar, DSO). 5 tabs: (1) AR Summary with inline SVG stacked aging bar chart, 12-month payment history bar chart (green=on-time, red=late), credit utilization progress bar with 80% warning; (2) Collection Activity timeline with type/channel filtering; (3) Promises & Commitments table with fulfillment stats; (4) Dunning Status with step progress visualization (connected circles); (5) Contacts card grid with primary highlighting. Action buttons: Log Call, Send Email, Record Promise, Start Dunning. Uses `useCustomer360`, `useCollections`, `useCorrespondence`, `usePromisesToPay`, `useDunningSequences` hooks.
+  - **B3: Auto-Dunning Manager** (`app/(main)/workbench/order-to-cash/collections/dunning/page.tsx`): Dunning sequence management dashboard. 4 KPI cards (Active Sequences, Amount Under Dunning, Avg Step Progress, Actions Due Today). 3 tabs: (1) Active Sequences with search/status filter, table with 5-dot step progress visualization, expandable rows showing full step timeline with completion dates; (2) Templates grid with tone badges, merge field highlighting ({{variable}} in blue spans), Sheet preview panel; (3) Effectiveness with inline SVG dunning funnel chart, completion stats, outcome rates, recent dunning correspondence table. Uses `useDunningSequences`, `useDunningTemplates`, `useCorrespondence` hooks.
+  - **Routes**: `/workbench/order-to-cash/collections/customer/[customerId]` (new, dynamic), `/workbench/order-to-cash/collections/dunning` (new, static).
+  - Page count increased from 92 to 94.
+  - No env/script/command changes. No breaking API changes. Build verified with zero TypeScript errors.
+
+### 2026-02-27 (d)
+- **Collections Portal Phase 2 — B4 + B5**: Built Promise-to-Pay Tracker and Correspondence Center pages.
+  - **B4: Promise-to-Pay Tracker** (`app/(main)/workbench/order-to-cash/collections/promises/page.tsx`, 822 lines): 5 KPI cards (Total Promised, Total Received, Fulfillment Rate, Due Today, At Risk). Urgent callout section for Due Today/Overdue promises with "Take Action" buttons. Inline SVG promise pipeline visualization (status flow: Active→Due Today→Fulfilled/Overdue→Broken with counts and amounts). Filter bar with search, status, payment method, and sort. Table with 9 columns including color-coded status/method badges, past-date highlighting, and clickable rows. Detail Sheet with summary grid, invoice references, promise timeline visualization, related collection record lookup, and action buttons (Mark Fulfilled/Broken/Cancel). Uses `usePromisesToPay`, `useCollections` hooks.
+  - **B5: Correspondence Center** (`app/(main)/workbench/order-to-cash/collections/correspondence/page.tsx`, 1176 lines): 4 KPI cards (Total Correspondence, This Week, Outbound/Inbound split, Avg Response Time). Channel breakdown horizontal bar chart. Filter bar with search, type, channel, direction, sort. Dual view toggle: Table view (9 columns with type/channel/direction badges, linked customer names) and Timeline view (grouped by relative date — Today/Yesterday/This Week/Earlier/Older — with vertical timeline dots). Detail Sheet with full correspondence info, outcome highlighting, related references. "Log New" Sheet form with customer select, type/channel/direction, subject, content textarea, contact person, outcome, duration (phone only). Uses `useCorrespondence`, `useCorrespondenceMutation`, `useCollections` hooks.
+  - **Routes**: `/workbench/order-to-cash/collections/promises` (new), `/workbench/order-to-cash/collections/correspondence` (new).
+  - Page count increased from 94 to 96.
+  - No env/script/command changes. No breaking API changes. Build verified with zero TypeScript errors.
+
+### 2026-02-27 (e)
+- **Collections Consolidation — Unified Workbench**: Merged 5 separate collections pages into a single tabbed workbench at `/workbench/order-to-cash/collections`.
+  - **Deleted 4 pages**: `collections/dunning/page.tsx` (B3), `collections/promises/page.tsx` (B4), `collections/correspondence/page.tsx` (B5), `cash-collection/page.tsx` (B7).
+  - **Rewritten** `collections/page.tsx` (~1700 lines): Unified Collections Workbench with 4 tabs (Accounts, Dunning, Promises, Correspondence), sidebar+table+drawer layout matching Cash Collection pattern.
+    - **Accounts tab** (default): Collection records with sidebar filters (search, collector, severity), quick views (All/Active/In Progress/Resolved), aging signal cards, bulk actions (Send Dunning, Schedule Call, Log Promise, Escalate), AR aging waterfall SVG, detail drawer with Customer 360 link.
+    - **Dunning tab**: Dunning sequences table with step progress dots, expandable row timelines, search/status sidebar filters, status summary counts.
+    - **Promises tab**: Promise-to-pay table with status/method/sort sidebar filters, pipeline summary, detail sheet with action buttons (Mark Fulfilled/Broken/Cancel).
+    - **Correspondence tab**: Correspondence log with type/channel/direction sidebar filters, table+timeline view toggle, channel breakdown chart, detail sheet, "Log New" form.
+  - **KPIs adapt per tab**: Accounts (Outstanding/Past Due/Active/Critical), Dunning (Sequences/Amount/Progress/Actions Due), Promises (Promised/Received/Rate/At Risk), Correspondence (Total/Week/Direction/Channels).
+  - **Navigation**: Removed `cash-collection` entry from `lib/navigation.ts`, renamed `Collections` to `Collections Workbench`, moved to first position under Order-to-Cash.
+  - **Breadcrumb**: Updated `components/layout/breadcrumb.tsx` label from "Collections" to "Collections Workbench".
+  - **Customer 360**: `collections/customer/[customerId]/page.tsx` kept unchanged as drill-down detail page.
+  - **Removed routes**: `/collections/dunning`, `/collections/promises`, `/collections/correspondence`, `/cash-collection`.
+  - Page count decreased from 96 to 92.
+  - No env/script/command changes. No breaking API changes. Build verified with zero TypeScript errors.
+
+### 2026-02-27 (f)
+- **Collections Workbench — UI Overhaul + Disputes Tab**: Reworked layout to match Cash Application Workbench pattern and added Disputes as 5th tab.
+  - **Layout overhaul**: Removed sticky header/breadcrumb/title, sidebar, large KPI cards. Adopted Cash App flat `bg-slate-50` layout with inline Popover filters, compact stat chips (`text-[11px]`), and native `<table>` elements.
+  - **Fixed Dunning crash**: Moved `dunningStatusCounts` useMemo from inside conditionally-called `renderSidebar()` to component top level (React Rules of Hooks violation).
+  - **Disputes tab** (5th tab): 10 mock dispute records with types/constants/badge maps. 4 compact KPI stats (Total/Open/Disputed Amount/Avg Aging). Filter popover with status/priority/reason selects. 10-column table (ID, Customer, Invoice, Disputed, Original, Reason, Status, Priority, Aging, Assignee). Detail Sheet with timeline, % disputed, action buttons (Approve/Reject/Escalate/Resolve).
+  - **Deleted**: `app/(main)/workbench/order-to-cash/disputes/page.tsx` (standalone 646-line page).
+  - **Navigation**: Removed `disputes` entry from `lib/navigation.ts` Order-to-Cash children.
+  - **Breadcrumb**: Removed disputes breadcrumb entry from `breadcrumb.tsx`.
+  - Page count decreased from 92 to 91.
+  - No env/script/command changes. No breaking API changes. Build verified with zero TypeScript errors.
+
+### 2026-02-27 (g)
+- **Cash Application Workbench — Match Collections UI/UX**: Updated toolbar layout to match Collections Workbench clean style.
+  - **Replaced SegmentedControl** with simple tab buttons (`px-3 py-1.5 text-xs rounded-md` with active state `bg-white text-primary shadow-sm border`). 6 tabs: All, Auto-Matched, Exceptions, Critical, Pending to Post, Settlement. Click active tab to deselect.
+  - **Added compact KPI stat chips** on right side of tab row: Total (count), Auto-Match (% green), Exceptions (red if >0), Pending (combined pendingToPost + settlementPending).
+  - **Removed DensityToggle** from toolbar (import removed, component removed from JSX; density state kept in hook — no breaking change).
+  - **Restructured toolbar**: Row 1 = tab buttons + KPI stats; Row 2 = Search input + Filters Popover. Previously everything was in a single row.
+  - **Removed imports**: `SegmentedControl`, `DensityToggle`. **Added import**: `cn` from `@/lib/utils`.
+  - **File modified**: `app/(main)/workbench/order-to-cash/cash-application/payments/page.tsx`.
+  - No env/script/command changes. No breaking API changes. Build verified with zero TypeScript errors.
+
+### 2026-02-27 (h)
+- **Cash App Workbench — Clean Layout Matching Collections**: Removed visual clutter from Cash Application layout and payments page.
+  - **Layout (`layout.tsx`)**: Removed title header (`<header>` with "Cash Application Workbench" title, Sync badge tooltip). Removed `border-b` from nav tabs section. Changed nav background from `bg-white` to `bg-slate-50` to blend with content area. Updated nav tab active state from `bg-slate-100 text-slate-900` to `bg-white text-primary shadow-sm border` (matching Collections pattern). Removed unused imports: `Tooltip`, `TooltipContent`, `TooltipProvider`, `TooltipTrigger`, `Badge`. Removed unused `dataHealth` variable.
+  - **Payments page (`payments/page.tsx`)**: Merged two rows (status tabs + KPI stats, Search + Filters) into a single row. Dropped Settlement tab (5→4 status segments: All, Auto-Matched, Exceptions, Critical, Pending to Post). Updated KPI stat chips to use Collections-style pill containers (`bg-white border border-slate-200 rounded-md`). Updated Filters button to use `text-primary`/`bg-primary` color scheme instead of hardcoded blue.
+  - **Sub-filter toggle fix (`usePaymentsQueue.ts`)**: `handleSubFilterClick` now toggles — clicking the active chip clears it (sets to `""`) instead of re-setting same value.
+  - No env/script/command changes. No breaking API changes. Build verified with zero TypeScript errors.
+
+### 2026-03-02
+- **One-Click Variance — Data/Type Fix**: Fixed critical type mismatch between `FluxVariance` interface and actual JSON data.
+  - **Root cause**: `FluxVariance` type defined `currentPeriod`/`priorPeriod` as `number` but JSON has them as strings (`"Q4 2024"`). Actual dollar amounts are in `currentValue`/`priorValue` fields (not in the type). Similarly `variancePct` → `variancePercent`, `materialityFlag` → `isSignificant`.
+  - **Type fix** (`lib/data/types/reports.ts`): Updated `FluxVariance` to match JSON: `currentPeriod`/`priorPeriod` as `string`, added `currentValue`/`priorValue` as `number`, `variancePercent`, `threshold`, `isSignificant`, `reviewedBy`/`reviewedAt`/`comments`. Added backward-compat optional `variancePct`/`materialityFlag`.
+  - **Transform fix** (`one-click-variance/page.tsx`): `transformFluxToGrouped` now reads `v.currentValue`/`v.priorValue` instead of `v.currentPeriod`/`v.priorPeriod`.
+  - **Display fixes**: Added `fmtCompact()` for large numbers (B/M/K). KPI cards use compact format. Table Current/Prior/$ Var columns use compact format. Top/Bottom mover badges show `effectiveGroups.length` instead of `analysis?.groups.length || 0`. Group column shows "account" when displaying flux data.
+  - No env/script/command changes. No breaking API changes. TypeScript typecheck passes with zero errors.
+
+### 2026-03-02 (b)
+- **One-Click Variance — UI/UX Overhaul to Match Cash App Style**: Redesigned page from sidebar+Card+header layout to flat Cash App workbench pattern.
+  - **Layout**: Replaced `bg-white` with `bg-slate-50`. Removed title header (`<header>` with breadcrumb, h1, description, border). Removed sidebar `<aside>` with Card controls. Now full-width flat layout like Cash App.
+  - **Toolbar row**: Mode tabs (MoM/QoQ/YoY) as simple rounded buttons with `text-primary` active state. Inline period selects (month + year). Search input. Filters Popover (Entity, Customer, Group by). Run button. Download button. KPI stat chips on right (`bg-white border border-slate-200 rounded-md` matching Collections/Cash App).
+  - **Data on load**: Changed `hasRun` default from `false` to `true` so synthetic analysis data shows immediately without clicking "Run Analysis". Added search filtering on account names.
+  - **Tables**: Replaced Shadcn `Table`/`Card` components with native `<table>` inside `bg-white rounded-lg border` containers (matching Cash App pattern). Removed "Group" column. Added "All Variances" table replacing the old "Details" section — shows all accounts sorted by absolute variance, with color-coded badges and directional icons. Top/Bottom tables show empty state message when no data matches.
+  - **Removed imports**: `Button`, `Label`, `Card`, `Badge`, `RadioGroup`, `RadioGroupItem`, `Table`/`TableBody`/`TableCell`/`TableHead`/`TableHeader`/`TableRow`, `Breadcrumb`, `useEffect`. Added: `Popover`/`PopoverContent`/`PopoverTrigger`, `Play`, `Search`, `ListFilter`.
+  - No env/script/command changes. No breaking API changes. TypeScript typecheck passes with zero errors.
+
+### 2026-03-02 (c)
+- **One-Click Variance — Demo-Ready Enhancements**: Added dynamic features and controls for demo purposes.
+  - **Data source toggle**: Switch between "Account Data" (flux API data from `useFluxAnalysis`) and "Synthetic" (randomly generated transactions). Toggle buttons in toolbar.
+  - **Significance filter tabs**: "All" / "Material" / "Below Threshold" filters based on `isSignificant` field. Active tab styled with `bg-white text-primary shadow-sm border`.
+  - **SVG Waterfall chart**: Top 8 accounts by absolute variance rendered as inline SVG bar chart with green (positive) and red (negative) bars, value labels, rotated account names.
+  - **StatusBadge component**: Color-coded badges for Reviewed (green), InReview (amber), AutoClosed (slate) statuses.
+  - **VarianceBar component**: Inline horizontal bar showing variance magnitude relative to max, colored green/red by direction.
+  - **Clickable rows → Sheet drawer**: Click any row to open detail drawer showing: account info grid, AI explanation section (Sparkles icon, italic text), variance bar visualization, status/reviewer/threshold info, action buttons (Mark Reviewed, Flag for Review, Add Comment).
+  - **Enhanced KPI chips**: Added Material count and Reviewed count chips alongside existing Total/Top/Bottom movers.
+  - **Toast notifications**: Mark Reviewed and Flag actions trigger sonner toasts.
+  - Added imports: `Sheet`/`SheetContent`/`SheetHeader`/`SheetTitle`, `AlertTriangle`, `CheckCircle2`, `Clock`, `Sparkles`, `X`, `Eye`, `FileText`, `toast` from sonner.
+  - No env/script/command changes. No breaking API changes. Build compiles successfully (pre-existing `styled-jsx` copy error unrelated).
+
+### 2026-03-02 (d)
+- **Flux Analysis — UI/UX Overhaul to Match Cash App Workbench Pattern**: Redesigned the Flux Analysis page (`app/(main)/reports/analysis/flux-analysis/page.tsx`) for visual consistency.
+  - **Removed header**: Removed sticky `<header>` block with Breadcrumb, icon, title ("Flux Analysis"), description, period/consolidation/currency badges, Export and Create Watch buttons.
+  - **Compact toolbar**: Single toolbar row with: view tab buttons (Income Statement / Balance Sheet / Cash Flow Bridge) as `bg-white text-primary shadow-sm` active state, inline Period/Consolidation/Currency selects, Filters Popover (Materiality, Owner, Status, Exclude Noise), Export button, +Watch button. Compact KPI stat chips on right (Revenue, Gross Margin, Op CF, WC Delta) matching Cash App/One-Click Variance pattern.
+  - **Filters Popover**: Moved Materiality, Owner, Status selects and Exclude Noise checkbox into a `Popover` component with active filter count badge.
+  - **Native tables**: Replaced all Shadcn `Table`/`TableHeader`/`TableRow`/`TableHead`/`TableBody`/`TableCell` with native `<table>`/`<thead>`/`<tr>`/`<th>`/`<tbody>`/`<td>` elements. Applied consistent `px-3 py-2 text-[11px]` header styling and `border-b border-slate-100` row separators.
+  - **Removed Card wrappers**: Replaced `<Card>` components with plain `<div className="bg-white rounded-lg border border-slate-200">` containers for tab tables, top drivers, AI sidebar sections (AI Analysis, AI Proposed Explanations, Sensitivity Analysis).
+  - **Removed Tabs component**: Replaced Shadcn `Tabs`/`TabsList`/`TabsTrigger`/`TabsContent` with plain buttons + conditional rendering using existing `activeView` state.
+  - **Removed imports**: `Card`, `Table`/`TableBody`/`TableCell`/`TableHead`/`TableHeader`/`TableRow`, `Tabs`/`TabsContent`/`TabsList`/`TabsTrigger`, `Breadcrumb`, `BarChart3`.
+  - **Added imports**: `Popover`/`PopoverContent`/`PopoverTrigger`, `ListFilter`.
+  - AI sidebar, detail drawer, evidence dialog, watch dialog, sensitivity sliders, and all business logic unchanged.
+  - **Mock data fix**: Updated 5 records in `public/data/reports/flux-analysis.json` to have negative variances (Accounts Receivable -$32M, Accounts Payable -$26M, Deferred Revenue -$24M, Cost of Product Revenue -$20M, R&D -$17M) so the One-Click Variance "Top Decreases" table shows data.
+  - No env/script/command changes. No breaking API changes. Build compiles successfully.
+
+### 2026-03-02 (e)
+- **Titles + One-Click Variance Cleanup**: Added compact title to Cash Application layout and removed synthetic data mode from One-Click Variance page.
+  - **Cash Application title** (`layout.tsx`): Added `<div className="px-5 pt-3 pb-1 bg-slate-50">` with `text-sm font-semibold` heading "Cash Application" and `text-[11px] text-slate-500` subtitle above the navigation tabs.
+  - **One-Click Variance cleanup** (`one-click-variance/page.tsx`): Removed synthetic data source entirely — deleted `Transaction` interface, `generateSyntheticData()` function, `rnd()`/`pick()` helpers, `ENTITIES`/`CUSTOMERS`/`MONTH_NAMES` constants, `facts`/`dataSource`/`mode`/`month`/`year`/`entity`/`customerFilter`/`groupBy`/`hasRun` state variables, `years` useMemo, `getPriorPeriod()` function, `analysis` useMemo, `handleRun()` function, data source toggle buttons, MoM/QoQ/YoY mode tabs, month/year selects, Run button, Filters popover (entity/customer/groupBy). Simplified `effectiveGroups` to always use `fluxGrouped`. Removed all `dataSource === 'flux'` conditionals (Status column and AI sparkle icon now always shown). Removed unused imports: `Select`/`SelectContent`/`SelectItem`/`SelectTrigger`/`SelectValue`, `Popover`/`PopoverContent`/`PopoverTrigger`, `ListFilter`, `Play`. Toolbar now has: Search + Download.
+  - No env/script/command changes. No breaking API changes. Build compiles successfully.
+
+### 2026-03-08
+- **PropYaar Real Estate Platform — Phase 1 Migration**: Migrated PropYaar real estate features from b2c-client (React.js) to frontend2 (Next.js).
+  - **Rail 7 added**: Extended 6-rail navigation to 7 rails. Updated `RailItem` union type in `lib/navigation.ts`, added `propyaar` rail with 9 nav items (Properties, Rentals, Projects, Blog, Submit Listing, Manage Layouts, Agents, Contact, About). Updated `sidebar.tsx` with Building2 icon button. Updated `app-shell.tsx` with default route. Updated `breadcrumb.tsx` with PropYaar route handling.
+  - **Types** (`lib/data/types/propyaar.ts`): 20+ interfaces/types — PropertyListing, PropertyFilters, PropYaarLocation, PropertyCategory, BlogPost, Agent, LayoutFeature, LineFeature, LandFeature, GeoFeatureCollection, plus constants (PRICE_RANGES, SUPPORTED_CITIES).
+  - **Data layer** (`lib/data/providers/json-provider.ts`): Added `propyaar` module with 18 methods (getListings with filtering/sorting/pagination, getListingById, getLocations, getCategories, getBlogPosts, getBlogPostById, getAgents, CRUD for layouts/lines/lands, getGeoData). API provider skeleton added.
+  - **Hooks** (`hooks/data/use-propyaar.ts`): 15 React Query hooks with explicit type parameters — usePropertyListings, usePropertyDetail, useLocations, useCategories, useBlogPosts, useBlogPost, useAgents, useLayouts, useLayoutMutation, useLines, useLineMutation, useLands, useLandMutation, useGeoData.
+  - **9 pages created**: properties, rentals, projects, blog, submit-listing, manage-layouts, agents, contact, about (all under `app/(main)/propyaar/`).
+  - **4 components** (`components/propyaar/`): property-map.tsx (CircleMarkers + overlay controls), projects-map.tsx (GeoJSON polygons), manage-layouts-map.tsx (layouts + lines), property-card.tsx (reusable card with INR formatting). All maps use `dynamic()` with `ssr: false`.
+  - **JSON data files** (`public/data/propyaar/`): 12 files — listings, locations, categories, blog, agents, layouts (5 GeoJSON features), lines (3 LineStrings), lands (2 polygons), geo-data, services, contactinfo, testimonials.
+  - **TypeScript**: All PropYaar-specific errors fixed. Pre-existing `sonner`/`@tanstack/react-query` module errors unrelated.
+  - Page count increased from 91 to 100. No env/script/command changes. No breaking API changes.
+
+### 2026-03-08 (b)
+- **PropYaar Phase 2 — GIS Drawing + Detail Pages**: Added Leaflet Geoman drawing, detail pages, and submit-project wizard.
+  - **Installed**: `@geoman-io/leaflet-geoman-free@2.17.0` for polygon/line drawing on maps.
+  - **New component**: `components/propyaar/drawing-map.tsx` — Leaflet map with Geoman toolbar integration. Supports polygon and line drawing modes. Emits `DrawnFeature` objects (coordinates + type) on creation. Renders existing layouts/lines as background GeoJSON. Uses dynamic CSS/JS import for Geoman.
+  - **New page — Submit Project** (`app/(main)/propyaar/submit-project/page.tsx`): 4-step GIS drawing wizard:
+    1. Feature Type selection (Layout polygon or Line route, with category/zone/route type options)
+    2. Draw on Map (DrawingMap component with instructions overlay, auto-advances on completion)
+    3. Details form (layout: title/name/location/mandal/area/units/color; line: name/description/length/opacity/color)
+    4. Review & Submit (creates LayoutFeature or LineFeature via mutation hooks)
+  - **New page — Property Detail** (`app/(main)/propyaar/properties/[id]/page.tsx`): Dynamic route with `usePropertyDetail(id)` hook. 2-column layout: left = hero image, price/badges, details grid (beds/bath/area/location), description card, location map; right = agent card with contact buttons, quick facts, coordinates. Related properties section at bottom. Loading skeleton and 404 states.
+  - **New page — Blog Detail** (`app/(main)/propyaar/blog/[id]/page.tsx`): Dynamic route with `useBlogPost(id)` hook. Full-width article layout: hero image, tags, title, author/date, article body, comment avatars section, related articles by shared tags. Loading skeleton and 404 states.
+  - **Enhanced pages**:
+    - `manage-layouts/page.tsx`: Added "Create New" button linking to submit-project, added router import.
+    - `properties/page.tsx`: "View Full Details" button in drawer now navigates to `/propyaar/properties/[id]`.
+    - `blog/page.tsx`: Added "Read Full Article" button in drawer navigating to `/propyaar/blog/[id]`.
+  - **Navigation**: Added "Submit Project" nav item (MapPin icon) to propyaar rail between Submit Listing and Manage Layouts.
+  - **Breadcrumb**: Added `submit-project` route handling.
+  - **TypeScript**: Zero errors across entire project (all pre-existing sonner/react-query errors also resolved).
+  - Page count increased from 100 to 103. Added `@geoman-io/leaflet-geoman-free` dependency. No breaking API changes.
+
+### 2026-03-08 (c)
+- **PropYaar Phase 3 — Enhancements**: Added MarkerClusterGroup, compare listings, edit layouts/lines, and image overlay support.
+  - **MarkerClusterGroup** (`components/propyaar/property-map.tsx`): Rewrote with `react-leaflet-cluster` + `leaflet.markercluster`. Changed from CircleMarker to Marker with custom `L.divIcon`. Added `createClusterIcon()` (blue circles, 3 sizes), `createPropertyIcon()` (colored dots with hover). `useClustering` prop (default true). Added `OverlayControls` for Popular/Upcoming/Red Zones/Highways toggles.
+  - **Compare Panel** (`components/propyaar/compare-panel.tsx`): Sheet-based side-by-side comparison table (up to 4 properties). 11 comparison rows: Image, Price, Type, Bedrooms, Bathrooms, Area, Price/sqft, Featured, Status, Agent, Listed. Highlights best price (lowest) and best area (largest) with green background.
+  - **Compare wired into Properties** (`app/(main)/propyaar/properties/page.tsx`): Added compare mode toggle button, multi-select state (Set), checkbox overlay on cards, floating comparison bar (count + compare/clear buttons), ComparePanel integration.
+  - **Edit Layouts/Lines** (`app/(main)/propyaar/manage-layouts/page.tsx`): Added Edit3 button on each layout/line card. Edit Layout Dialog (title, name, location, category, feature type, area, units, color). Edit Line Dialog (name, description, length, opacity, color, route type). Save via updated mutation hooks.
+  - **Provider update** (`lib/data/providers/json-provider.ts`): `updateLayout()` and `updateLine()` now accept `Partial<LayoutFeature|LineFeature>` instead of geometry-only, supporting full property updates.
+  - **Hook update** (`hooks/data/use-propyaar.ts`): Layout and line update mutations now accept full feature objects instead of `{ id, geometry }`.
+  - **Image Overlay** (`components/propyaar/image-overlay-map.tsx`): New component for satellite/layout image overlays on maps. `ImageOverlayConfig` interface (url, topLeft/topRight/bottomLeft corners, opacity). `OverlayManager` renders `L.imageOverlay` with optional draggable control point markers for editing.
+  - **Installed packages**: `react-leaflet-cluster`, `leaflet.markercluster`, `leaflet-imageoverlay-rotated` (with `--legacy-peer-deps`).
+  - No env/script/command changes. No breaking API changes. TypeScript: zero errors.
+
+### 2026-03-08 (d)
+- **PropYaar Phase 4 — AI Chat, i18n, User Profile**: Added property assistant chat, multi-language support, and user profile page.
+  - **AI Chat** (`app/(main)/propyaar/ai-chat/page.tsx`): Property assistant with simulated AI responses generated from live listing data. 7 quick chips (Market Summary, Top Listings, Price Trends, Popular Areas, Available Rentals, Featured Properties, Agent Directory). 6 suggested prompts. Keyword-based response generator with markdown tables, bullet points, pricing analysis. Chat UI: empty state with centered composer + suggestion grid, active state with scrollable message thread + bottom input bar. Follows revenue-assurance ai-chat pattern.
+  - **i18n System** (`lib/propyaar-i18n.tsx`): Lightweight `PropYaarI18nProvider` context with `useTranslation()` hook. 4 locales: English (`en`), Hindi (`hi`), Kannada (`kn`), Telugu (`te`). Translation files in `public/data/propyaar/locales/{en,hi,kn,te}.json` (113 keys each across 12 sections). Dot-notation key resolver (`t("listing.price")`). Locale persisted in `localStorage`. In-memory translation cache. Graceful fallback to English. Provider wraps PropYaar section via `app/(main)/propyaar/layout.tsx`.
+  - **User Profile** (`app/(main)/propyaar/profile/page.tsx`): Profile card with avatar, name, role badge, verified status. Editable form (name, email, phone, WhatsApp, city, address, role selector). Language switcher in toolbar (4 locale buttons). "My Listings" section showing user's properties with thumbnails and pricing. Account verification status card. Mock user data with toast notifications on save.
+  - **PropYaar Layout** (`app/(main)/propyaar/layout.tsx`): Section-level layout wrapping all PropYaar pages with `PropYaarI18nProvider`.
+  - **Navigation**: Added "AI Chat" (Bot icon) and "Profile" (UserCircle icon) nav items to propyaar rail. Added `Bot`, `UserCircle` to lucide imports in `lib/navigation.ts`.
+  - **Breadcrumb**: Added `ai-chat` and `profile` route handling.
+  - **Translation files** (`public/data/propyaar/locales/`): 4 JSON files (en, hi, kn, te) with 113 keys each. Sections: banner, about, contact, listing, submit_listing, profile, login, common, chat, verification, nav.
+  - Page count increased from 103 to 105. No env/script/command changes. No breaking API changes. TypeScript: zero errors.
+
+### 2026-03-08 (e)
+- **PropYaar Layout Restructure — Standalone Site Layout**: Replaced Meeru AppShell with PropYaar's own header/footer layout. Moved all PropYaar pages from `(main)/propyaar/` to `(site)/` route group.
+  - **New route group** `app/(site)/layout.tsx`: Wraps all PropYaar pages with `PropYaarI18nProvider` + `SiteHeader` + `SiteFooter`. No Meeru AppShell, no sidebar, no nav panel.
+  - **New component** `components/propyaar/site-footer.tsx`: 4-column footer matching old React Footer.js — brand/description, menu links (Buy/Rent/Projects/Blog), information (About/Contact/Agents/Agent FB Group), legal (Privacy/Refund/Terms/Cookie). Bottom bar with copyright (Risee Proptech) and social icons (Facebook/Instagram/YouTube/Twitter). Dark slate-900 background.
+  - **New home page** `app/(site)/page.tsx`: Hero banner with background image (`/assets/img/banner/3.jpg`), city selector dropdown, search bar. 3 CTA cards (Buying/Selling/Investing) overlapping banner. New Listings grid (4 columns, from `usePropertyListings` hook). "Why PropYaar" section. Contact CTA section.
+  - **Route migration**: All pages moved from `app/(main)/propyaar/*` to `app/(site)/*`. Routes changed from `/propyaar/properties` → `/properties`, `/propyaar/blog` → `/blog`, etc. All internal route references updated to remove `/propyaar/` prefix.
+  - **Deleted**: `app/(main)/propyaar/` directory (all pages now under `(site)`).
+  - **Root page**: `app/page.tsx` deleted — `(site)/page.tsx` now serves `/` as PropYaar home page.
+  - **Root layout metadata**: Changed from "Meeru AI Chat" to "PropYaar - Real Estate Properties".
+  - **CLAUDE.md**: Updated title, description, and project structure to reflect PropYaar as primary product.
+  - Page count: 105 (unchanged — moved pages, added 1 home page, removed root redirect). No env/script/command changes. TypeScript: zero errors.

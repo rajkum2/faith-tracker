@@ -1,0 +1,3 @@
+https://faith-tracker.netlify.app/* https://faith-tracker.com/:splat 301!
+http://faith-tracker.com/* https://faith-tracker.com/:splat 301!
+https://www.faith-tracker.com/* https://faith-tracker.com/:splat 301!
