@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { Search, MapPin, Info, Globe, Loader2 } from "lucide-react";
 import type { FaithType } from "@/lib/data/types/faith-sites";
 import { FAITH_COLORS, FAITH_NAMES, ALL_FAITHS } from "@/lib/data/types/faith-sites";
+import { DataQualityIndicator } from "@/components/faith-tracker/data-quality-indicator";
 import dynamic from "next/dynamic";
 
 // Dynamic import for the map
@@ -424,23 +425,14 @@ export default function HomePage() {
 
                 {/* Data quality */}
                 <div className="border-t border-slate-100 pt-3">
-                  <div className="text-xs text-slate-500 mb-2">Data Quality</div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-primary rounded-full"
-                        style={{ width: `${selectedSiteDetail.data_quality.completeness_score}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-slate-500">
-                      {selectedSiteDetail.data_quality.completeness_score}%
-                    </span>
-                  </div>
-                  {selectedSiteDetail.data_quality.needs_review && (
-                    <div className="text-[10px] text-amber-600 mt-1">
-                      ⚠️ Needs review
-                    </div>
-                  )}
+                  <DataQualityIndicator 
+                    completenessScore={selectedSiteDetail.data_quality.completeness_score}
+                    needsReview={selectedSiteDetail.data_quality.needs_review}
+                    flags={selectedSiteDetail.data_quality.flags}
+                    lastVerified={selectedSiteDetail.data_quality.last_verified}
+                    showDetails={true}
+                    size="md"
+                  />
                 </div>
 
                 {/* Actions */}
