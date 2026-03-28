@@ -67,7 +67,7 @@
     "leaflet": "^1.9.4",
     "leaflet-imageoverlay-rotated": "^0.2.1",
     "leaflet.markercluster": "^1.5.3",
-    "lucide-react": "^0.446.0",
+    "lucide-react": "^0.577.0",
     "next": "13.5.1",
     "next-themes": "^0.3.0",
     "postcss": "8.4.30",
